@@ -1,43 +1,58 @@
 from flask import Flask, request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import os
+import json
 import re
 
 app = Flask(__name__)
 
-# Google Sheets setup
+# Define the scope for Google Sheets and Drive API
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("google_credentials.json", scope)
+
+# Load credentials from environment variable
+google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(google_creds, scope)
+
+# Authorize the client
 client = gspread.authorize(creds)
-sheet = client.open("Ausentismo Iscot").sheet1
 
-# Function to extract data from message
-def extract_data(message):
-    # Regular expressions to extract fields
-    nombre_match = re.search(r"(?i)nombre\s*[:\-]?\s*(.+)", message)
-    servicio_match = re.search(r"(?i)servicio\s*[:\-]?\s*(.+)", message)
-    legajo_match = re.search(r"(?i)legajo\s*[:\-]?\s*(\d+)", message)
-    motivo_match = re.search(r"(?i)motivo\s*[:\-]?\s*(.+)", message)
-    dias_match = re.search(r"(?i)d[ií]as\s*[:\-]?\s*(\d+)", message)
+# Open the spreadsheet
+spreadsheet = client.open("Ausentismo Iscot").sheet1
 
-    nombre = nombre_match.group(1).strip() if nombre_match else ""
-    servicio = servicio_match.group(1).strip() if servicio_match else ""
-    legajo = legajo_match.group(1).strip() if legajo_match else ""
-    motivo = motivo_match.group(1).strip() if motivo_match else ""
-    dias = dias_match.group(1).strip() if dias_match else ""
+# Function to extract data from message text
+def extract_fields(message):
+    patterns = {
+        "nombre": r"(?i)nombre\s*[:\-]\s*(.+)",
+        "servicio": r"(?i)servicio\s*[:\-]\s*(.+)",
+        "legajo": r"(?i)legajo\s*[:\-]\s*(\d+)",
+        "motivo": r"(?i)motivo\s*[:\-]\s*(.+)",
+        "dias": r"(?i)d[ií]as\s*[:\-]\s*(\d+)"
+    }
+    extracted = {}
+    for key, pattern in patterns.items():
+        match = re.search(pattern, message)
+        extracted[key] = match.group(1).strip() if match else ""
+    return extracted
 
-    return nombre, servicio, legajo, motivo, dias
-
+# Webhook endpoint
 @app.route("/webhook", methods=["POST"])
 def webhook():
     incoming_msg = request.values.get("Body", "").strip()
-    nombre, servicio, legajo, motivo, dias = extract_data(incoming_msg)
+    fields = extract_fields(incoming_msg)
 
-    # Save to Google Sheets
-    sheet.append_row([nombre, servicio, legajo, motivo, dias])
+    # Append data to Google Sheet
+    spreadsheet.append_row([
+        fields["nombre"],
+        fields["servicio"],
+        fields["legajo"],
+        fields["motivo"],
+        fields["dias"]
+    ])
 
-    return "Datos registrados correctamente", 200
+    return "Datos recibidos y registrados correctamente", 200
 
+# Run the Flask app
 if __name__ == "__main__":
     app.run(debug=True)
 
