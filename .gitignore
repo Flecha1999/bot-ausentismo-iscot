@@ -1,0 +1,57 @@
+# -----------------------------
+# Entornos virtuales
+# -----------------------------
+venv/
+.venv/
+ENV/
+env/
+.env
+
+# -----------------------------
+# Archivos de configuración y credenciales
+# -----------------------------
+*.json
+*.key
+*.pem
+*.p12
+*.db
+*.sqlite3
+*.env
+
+# -----------------------------
+# Python cache
+# -----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# -----------------------------
+# Logs y temporales
+# -----------------------------
+*.log
+*.tmp
+*.swp
+*.bak
+*.old
+
+# -----------------------------
+# IDE / Editor
+# -----------------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# -----------------------------
+# Mac / Windows
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# Otros
+# -----------------------------
+*.egg-info/
+dist/
+build/
